@@ -7,8 +7,7 @@ int main() {
 
     if (game.initialize()) {
         game.runLoop();
-    }
-    else {
+    } else {
         std::cerr << "Game failed to initialized!\n";
     }
     game.stop();
