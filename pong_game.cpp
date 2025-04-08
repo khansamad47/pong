@@ -4,6 +4,18 @@
 
 namespace pong {
 
+template<typename T1, typename T2>
+auto max(T1 t1, T2 t2)
+{
+    return t1 > t2? t1 : t2;
+}
+
+template<typename T1, typename T2>
+auto min(T1 t1, T2 t2)
+{
+    return t1 < t2? t1 : t2;
+}
+
 Game::Game()
 {
 
@@ -37,6 +49,8 @@ void Game::runLoop()
 {
     while(d_isRunning)
     {
+        // Comute how much time has passed:
+        d_deltaTime = 0.1;
         processInput();
         updateGame();
         generateOutput();
@@ -67,23 +81,57 @@ void Game::processInput()
     SDL_Log("All events processed.");
 
     const Uint8* state = SDL_GetKeyboardState(NULL);
-    // if (state[SDL_SCANCODE_ESCAPE]) {
-    //     d_isRunning = false;
-    // }
-    // if (state[SDL_KEYUP])
-    // {
-    //     paddleDirection = -1;
-    // }
-    // if (state[SDL_KEYDOWN])
-    // {
-    //     paddleDirection = 1;
-    // }
+    if (state[SDL_SCANCODE_K])
+    {
+        d_paddleDirection = -1;
+    }
+    if (state[SDL_SCANCODE_J])
+    {
+        d_paddleDirection = 1;
+    }
+    if (state[SDL_SCANCODE_ESCAPE]) {
+        d_isRunning = false;
+    }
 }
 
 void Game::updateGame()
 {
-    // const paddleSpeed = 5; // 5 unit per tick?
-    // d_paddlePos.x += (paddleSpeed * paddleDirection)
+    // Update paddle position
+    d_paddlePos.y += (d_paddleSpeed * d_paddleDirection) * d_deltaTime;
+
+    // Handle paddle/wall collision
+    d_paddlePos.y = max(d_paddlePos.y, THICKNESS + PADDLE_HEIGHT/2.0);
+    d_paddlePos.y = min(d_paddlePos.y, HEIGHT - THICKNESS - PADDLE_HEIGHT/2.0);
+
+    // Update ball position
+    d_ballPos.x += (d_ballSpeed * d_ballDirection.x) * d_deltaTime;
+    d_ballPos.y += (d_ballSpeed * d_ballDirection.y) * d_deltaTime;
+
+    // Handle ball/wall collision
+    if (d_ballPos.y <= THICKNESS + BALL_HEIGHT/2.0)
+    {
+        d_ballDirection.y *= -1;
+    }
+    if (d_ballPos.y >= HEIGHT - THICKNESS - BALL_HEIGHT/2.0)
+    {
+        d_ballDirection.y *= -1;
+    }
+    if (d_ballPos.x >= WIDTH - THICKNESS - BALL_WIDTH/2.0)
+    {
+        d_ballDirection.x *= -1;
+    }
+
+    // ball and paddle collision
+    if (d_ballPos.x <= THICKNESS + BALL_WIDTH/2.0)
+    {
+        if (d_paddlePos.y - PADDLE_HEIGHT/2.0 <= d_ballPos.y  && d_paddlePos.y + PADDLE_HEIGHT/2.0 >= d_ballPos.y)
+        {
+            d_ballDirection.x *= -1;
+        }
+        else {
+            SDL_Log("Lost");
+        }
+    }
 }
 void Game::generateOutput()
 {
@@ -110,11 +158,22 @@ void Game::generateOutput()
 
     // Draw Paddle
     {
-        SDL_Rect paddle{0,static_cast<int>(d_paddlePos.y - HEIGHT/20.0),THICKNESS, HEIGHT/10};
+        SDL_Rect paddle{
+            0,
+            static_cast<int>(d_paddlePos.y - PADDLE_HEIGHT/2.0),
+            PADDLE_WIDTH,
+            PADDLE_HEIGHT};
+
         SDL_RenderFillRect(d_renderer, &paddle);
     }
+    // Draw Ball
     {
-        SDL_Rect ball{static_cast<int>(d_ballPos.x - THICKNESS/2.0),static_cast<int>(d_ballPos.y - THICKNESS/2.0),THICKNESS,THICKNESS};
+        SDL_Rect ball{
+            static_cast<int>(d_ballPos.x - BALL_WIDTH/2.0),
+            static_cast<int>(d_ballPos.y - BALL_HEIGHT/2.0),
+            BALL_WIDTH,
+            BALL_HEIGHT};
+
         SDL_RenderFillRect(d_renderer, &ball);
     }
 
